@@ -299,6 +299,7 @@ func createTestInput(
 	stakingKeeper := stakingkeeper.NewKeeper(
 		appCodec,
 		keys[stakingtypes.StoreKey],
+		tkeys[stakingtypes.TStoreKey],
 		accountKeeper,
 		bankKeeper,
 		subspace(stakingtypes.ModuleName),
@@ -376,8 +377,6 @@ func createTestInput(
 		subspace(types.ModuleName),
 		accountKeeper,
 		bankKeeper,
-		stakingKeeper,
-		distKeeper,
 		ibcKeeper.ChannelKeeper,
 		&ibcKeeper.PortKeeper,
 		scopedWasmKeeper,
