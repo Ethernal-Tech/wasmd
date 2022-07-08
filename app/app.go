@@ -379,7 +379,7 @@ func NewWasmApp(
 		appCodec,
 		keys[ibchost.StoreKey],
 		app.getSubspace(ibchost.ModuleName),
-		app.ConsumerKeeper,
+		&app.ConsumerKeeper,
 		app.upgradeKeeper,
 		scopedIBCKeeper,
 	)
@@ -466,7 +466,7 @@ func NewWasmApp(
 	evidenceKeeper := evidencekeeper.NewKeeper(
 		appCodec,
 		keys[evidencetypes.StoreKey],
-		app.ConsumerKeeper,
+		&app.ConsumerKeeper,
 		app.slashingKeeper,
 	)
 	app.evidenceKeeper = *evidenceKeeper
