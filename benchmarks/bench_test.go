@@ -20,6 +20,7 @@ import (
 )
 
 func BenchmarkTxSending(b *testing.B) {
+	b.Skip("ccv consumer chain: connection with provider chain must be established")
 	cases := map[string]struct {
 		db          func(*testing.B) dbm.DB
 		txBuilder   func(*testing.B, *AppInfo) []sdk.Tx

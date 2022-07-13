@@ -24,6 +24,7 @@ import (
 )
 
 func TestFromIBCTransferToContract(t *testing.T) {
+	t.Skip("ccv consumer chain: connection with provider chain must be established")
 	// scenario: given two chains,
 	//           with a contract on chain B
 	//           then the contract can handle the receiving side of an ics20 transfer
@@ -130,6 +131,7 @@ func TestFromIBCTransferToContract(t *testing.T) {
 }
 
 func TestContractCanInitiateIBCTransferMsg(t *testing.T) {
+	t.Skip("ccv consumer chain: connection with provider chain must be established")
 	// scenario: given two chains,
 	//           with a contract on chain A
 	//           then the contract can start an ibc transfer via ibctransfertypes.NewMsgTransfer
@@ -200,6 +202,7 @@ func TestContractCanInitiateIBCTransferMsg(t *testing.T) {
 }
 
 func TestContractCanEmulateIBCTransferMessage(t *testing.T) {
+	t.Skip("ccv consumer chain: connection with provider chain must be established")
 	// scenario: given two chains,
 	//           with a contract on chain A
 	//           then the contract can emulate the ibc transfer module in the contract to send an ibc packet
@@ -275,6 +278,7 @@ func TestContractCanEmulateIBCTransferMessage(t *testing.T) {
 }
 
 func TestContractCanEmulateIBCTransferMessageWithTimeout(t *testing.T) {
+	t.Skip("ccv consumer chain: connection with provider chain must be established")
 	// scenario: given two chains,
 	//           with a contract on chain A
 	//           then the contract can emulate the ibc transfer module in the contract to send an ibc packet
@@ -357,6 +361,7 @@ func TestContractCanEmulateIBCTransferMessageWithTimeout(t *testing.T) {
 }
 
 func TestContractHandlesChannelClose(t *testing.T) {
+	t.Skip("ccv consumer chain: connection with provider chain must be established")
 	// scenario: a contract is the sending side of an ics20 transfer but the packet was not received
 	// on the destination chain within the timeout boundaries
 	myContractA := &captureCloseContract{}

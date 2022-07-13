@@ -16,6 +16,7 @@ import (
 )
 
 func TestIBCReflectContract(t *testing.T) {
+	t.Skip("ccv consumer chain: connection with provider chain must be established")
 	// scenario:
 	//  chain A: ibc_reflect_send.wasm
 	//  chain B: reflect.wasm + ibc_reflect.wasm

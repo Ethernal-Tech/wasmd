@@ -445,8 +445,7 @@ func TestGenesisInit(t *testing.T) {
 			}
 			require.NoError(t, gotErr)
 			spec.msgHandlerMock.verifyCalls(t)
-			spec.stakingMock.verifyCalls(t)
-			assert.Equal(t, []abci.ValidatorUpdate{}, gotValidatorSet)
+			assert.Equal(t, 0, len(gotValidatorSet))
 			for _, c := range spec.src.Codes {
 				assert.Equal(t, c.Pinned, keeper.IsPinnedCode(ctx, c.CodeID))
 			}

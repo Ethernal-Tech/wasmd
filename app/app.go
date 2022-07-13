@@ -403,7 +403,6 @@ func NewWasmApp(
 	)
 
 	// consumer keeper satisfies the staking keeper interface of the slashing module
-	// Ethernal TODO: slashing keeper is set 2x, what is the reason for this?
 	app.slashingKeeper = slashingkeeper.NewKeeper(
 		appCodec,
 		keys[slashingtypes.StoreKey],
@@ -590,17 +589,17 @@ func NewWasmApp(
 	// genesis phase. For example bank transfer, auth account check, staking, ...
 	app.mm.SetOrderInitGenesis(
 		capabilitytypes.ModuleName,
-		authtypes.ModuleName,
 		banktypes.ModuleName,
 		slashingtypes.ModuleName,
 		crisistypes.ModuleName,
 		evidencetypes.ModuleName,
+		ibctransfertypes.ModuleName,
 		authz.ModuleName,
+		authtypes.ModuleName,
 		feegrant.ModuleName,
 		paramstypes.ModuleName,
 		upgradetypes.ModuleName,
 		vestingtypes.ModuleName,
-		ibctransfertypes.ModuleName,
 		ibchost.ModuleName,
 		icatypes.ModuleName,
 		intertxtypes.ModuleName,
@@ -678,8 +677,6 @@ func NewWasmApp(
 	// 		panic(fmt.Errorf("failed to register snapshot extension: %s", err))
 	// 	}
 	// }
-
-	//Ethernal TODO: check if we need app.UpgradeKeeper.SetUpgradeHandler and upgradeInfo.Name set as in mvcc app.go
 
 	app.scopedIBCKeeper = scopedIBCKeeper
 	app.scopedTransferKeeper = scopedTransferKeeper
@@ -864,4 +861,12 @@ func (app *WasmApp) GetScopedIBCKeeper() capabilitykeeper.ScopedKeeper {
 // GetTxConfig implements the TestingApp interface.
 func (app *WasmApp) GetTxConfig() client.TxConfig {
 	return cosmoscmd.MakeEncodingConfig(ModuleBasics).TxConfig
+}
+
+func (app *WasmApp) GetSlashingKeeper() slashingkeeper.Keeper {
+	return app.slashingKeeper
+}
+
+func (app *WasmApp) GetEvidenceKeeper() evidencekeeper.Keeper {
+	return app.evidenceKeeper
 }
