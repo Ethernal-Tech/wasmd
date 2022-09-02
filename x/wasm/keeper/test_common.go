@@ -299,7 +299,6 @@ func createTestInput(
 	stakingKeeper := stakingkeeper.NewKeeper(
 		appCodec,
 		keys[stakingtypes.StoreKey],
-		tkeys[stakingtypes.TStoreKey],
 		accountKeeper,
 		bankKeeper,
 		subspace(stakingtypes.ModuleName),

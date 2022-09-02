@@ -120,6 +120,7 @@ var (
 	EnableSpecificProposals = ""
 )
 
+// TODO[Ethernal]: democracy-enabled chain should support governance, so modify this method accordingly
 // GetEnabledProposals parses the ProposalsEnabled / EnableSpecificProposals values to
 // produce a list of enabled proposals to pass into wasmd app.
 func GetEnabledProposals() []wasm.ProposalType {
@@ -478,6 +479,7 @@ func NewWasmApp(
 
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
+	// TODO[Ethernal]: democracy-enabled chain should include "staking" feature as well
 	supportedFeatures := "iterator,stargate"
 	app.wasmKeeper = wasm.NewKeeper(
 		appCodec,
