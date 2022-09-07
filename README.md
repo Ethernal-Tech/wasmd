@@ -1,3 +1,11 @@
+# Example Interchain Security Consumer Chain
+
+This repo contains a version of the default CosmWasm chain (wasmd) demonstrating how one can integrate the CCV module to turn it into a consumer chain. The modifications done here to `app.go` and other files could be copied to another chain, or this repo could be used as is as the basis for a CosmWasm-powered consumer chain.
+
+See the full list of modifications necessary here: https://github.com/CosmWasm/wasmd/compare/main...informalsystems:wasmd:main
+
+**Original wasmd readme continues below**
+
 # Wasm Zone
 
 [![CircleCI](https://circleci.com/gh/CosmWasm/wasmd/tree/master.svg?style=shield)](https://circleci.com/gh/CosmWasm/wasmd/tree/master)
