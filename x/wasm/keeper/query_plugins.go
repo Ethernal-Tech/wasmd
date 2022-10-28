@@ -13,6 +13,8 @@ import (
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 )
 
 type QueryHandler struct {
@@ -274,8 +276,186 @@ func StargateQuerier(queryRouter GRPCQueryRouter) func(ctx sdk.Context, request 
 
 func StakingQuerier(keeper types.StakingKeeper, distKeeper types.DistributionKeeper) func(ctx sdk.Context, request *wasmvmtypes.StakingQuery) ([]byte, error) {
 	return func(ctx sdk.Context, request *wasmvmtypes.StakingQuery) ([]byte, error) {
-		return nil, wasmvmtypes.UnsupportedRequest{Kind: "Staking queries are disabled."}
+		if request.BondedDenom != nil {
+			denom := keeper.BondDenom(ctx)
+			res := wasmvmtypes.BondedDenomResponse{
+				Denom: denom,
+			}
+			return json.Marshal(res)
+		}
+		if request.AllValidators != nil {
+			validators := keeper.GetBondedValidatorsByPower(ctx)
+			// validators := keeper.GetAllValidators(ctx)
+			wasmVals := make([]wasmvmtypes.Validator, len(validators))
+			for i, v := range validators {
+				wasmVals[i] = wasmvmtypes.Validator{
+					Address:       v.OperatorAddress,
+					Commission:    v.Commission.Rate.String(),
+					MaxCommission: v.Commission.MaxRate.String(),
+					MaxChangeRate: v.Commission.MaxChangeRate.String(),
+				}
+			}
+			res := wasmvmtypes.AllValidatorsResponse{
+				Validators: wasmVals,
+			}
+			return json.Marshal(res)
+		}
+		if request.Validator != nil {
+			valAddr, err := sdk.ValAddressFromBech32(request.Validator.Address)
+			if err != nil {
+				return nil, err
+			}
+			v, found := keeper.GetValidator(ctx, valAddr)
+			res := wasmvmtypes.ValidatorResponse{}
+			if found {
+				res.Validator = &wasmvmtypes.Validator{
+					Address:       v.OperatorAddress,
+					Commission:    v.Commission.Rate.String(),
+					MaxCommission: v.Commission.MaxRate.String(),
+					MaxChangeRate: v.Commission.MaxChangeRate.String(),
+				}
+			}
+			return json.Marshal(res)
+		}
+		if request.AllDelegations != nil {
+			delegator, err := sdk.AccAddressFromBech32(request.AllDelegations.Delegator)
+			if err != nil {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.AllDelegations.Delegator)
+			}
+			sdkDels := keeper.GetAllDelegatorDelegations(ctx, delegator)
+			delegations, err := sdkToDelegations(ctx, keeper, sdkDels)
+			if err != nil {
+				return nil, err
+			}
+			res := wasmvmtypes.AllDelegationsResponse{
+				Delegations: delegations,
+			}
+			return json.Marshal(res)
+		}
+		if request.Delegation != nil {
+			delegator, err := sdk.AccAddressFromBech32(request.Delegation.Delegator)
+			if err != nil {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.Delegation.Delegator)
+			}
+			validator, err := sdk.ValAddressFromBech32(request.Delegation.Validator)
+			if err != nil {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.Delegation.Validator)
+			}
+
+			var res wasmvmtypes.DelegationResponse
+			d, found := keeper.GetDelegation(ctx, delegator, validator)
+			if found {
+				res.Delegation, err = sdkToFullDelegation(ctx, keeper, distKeeper, d)
+				if err != nil {
+					return nil, err
+				}
+			}
+			return json.Marshal(res)
+		}
+		return nil, wasmvmtypes.UnsupportedRequest{Kind: "unknown Staking variant"}
 	}
+}
+
+func sdkToDelegations(ctx sdk.Context, keeper types.StakingKeeper, delegations []stakingtypes.Delegation) (wasmvmtypes.Delegations, error) {
+	result := make([]wasmvmtypes.Delegation, len(delegations))
+	bondDenom := keeper.BondDenom(ctx)
+
+	for i, d := range delegations {
+		delAddr, err := sdk.AccAddressFromBech32(d.DelegatorAddress)
+		if err != nil {
+			return nil, sdkerrors.Wrap(err, "delegator address")
+		}
+		valAddr, err := sdk.ValAddressFromBech32(d.ValidatorAddress)
+		if err != nil {
+			return nil, sdkerrors.Wrap(err, "validator address")
+		}
+
+		// shares to amount logic comes from here:
+		// https://github.com/cosmos/cosmos-sdk/blob/v0.38.3/x/staking/keeper/querier.go#L404
+		val, found := keeper.GetValidator(ctx, valAddr)
+		if !found {
+			return nil, sdkerrors.Wrap(stakingtypes.ErrNoValidatorFound, "can't load validator for delegation")
+		}
+		amount := sdk.NewCoin(bondDenom, val.TokensFromShares(d.Shares).TruncateInt())
+
+		result[i] = wasmvmtypes.Delegation{
+			Delegator: delAddr.String(),
+			Validator: valAddr.String(),
+			Amount:    ConvertSdkCoinToWasmCoin(amount),
+		}
+	}
+	return result, nil
+}
+
+func sdkToFullDelegation(ctx sdk.Context, keeper types.StakingKeeper, distKeeper types.DistributionKeeper, delegation stakingtypes.Delegation) (*wasmvmtypes.FullDelegation, error) {
+	delAddr, err := sdk.AccAddressFromBech32(delegation.DelegatorAddress)
+	if err != nil {
+		return nil, sdkerrors.Wrap(err, "delegator address")
+	}
+	valAddr, err := sdk.ValAddressFromBech32(delegation.ValidatorAddress)
+	if err != nil {
+		return nil, sdkerrors.Wrap(err, "validator address")
+	}
+	val, found := keeper.GetValidator(ctx, valAddr)
+	if !found {
+		return nil, sdkerrors.Wrap(stakingtypes.ErrNoValidatorFound, "can't load validator for delegation")
+	}
+	bondDenom := keeper.BondDenom(ctx)
+	amount := sdk.NewCoin(bondDenom, val.TokensFromShares(delegation.Shares).TruncateInt())
+
+	delegationCoins := ConvertSdkCoinToWasmCoin(amount)
+
+	// FIXME: this is very rough but better than nothing...
+	// https://github.com/CosmWasm/wasmd/issues/282
+	// if this (val, delegate) pair is receiving a redelegation, it cannot redelegate more
+	// otherwise, it can redelegate the full amount
+	// (there are cases of partial funds redelegated, but this is a start)
+	redelegateCoins := wasmvmtypes.NewCoin(0, bondDenom)
+	if !keeper.HasReceivingRedelegation(ctx, delAddr, valAddr) {
+		redelegateCoins = delegationCoins
+	}
+
+	// FIXME: make a cleaner way to do this (modify the sdk)
+	// we need the info from `distKeeper.calculateDelegationRewards()`, but it is not public
+	// neither is `queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper)`
+	// so we go through the front door of the querier....
+	accRewards, err := getAccumulatedRewards(ctx, distKeeper, delegation)
+	if err != nil {
+		return nil, err
+	}
+
+	return &wasmvmtypes.FullDelegation{
+		Delegator:          delAddr.String(),
+		Validator:          valAddr.String(),
+		Amount:             delegationCoins,
+		AccumulatedRewards: accRewards,
+		CanRedelegate:      redelegateCoins,
+	}, nil
+}
+
+// FIXME: simplify this enormously when
+// https://github.com/cosmos/cosmos-sdk/issues/7466 is merged
+func getAccumulatedRewards(ctx sdk.Context, distKeeper types.DistributionKeeper, delegation stakingtypes.Delegation) ([]wasmvmtypes.Coin, error) {
+	// Try to get *delegator* reward info!
+	params := distributiontypes.QueryDelegationRewardsRequest{
+		DelegatorAddress: delegation.DelegatorAddress,
+		ValidatorAddress: delegation.ValidatorAddress,
+	}
+	cache, _ := ctx.CacheContext()
+	qres, err := distKeeper.DelegationRewards(sdk.WrapSDKContext(cache), &params)
+	if err != nil {
+		return nil, err
+	}
+
+	// now we have it, convert it into wasmvm types
+	rewards := make([]wasmvmtypes.Coin, len(qres.Rewards))
+	for i, r := range qres.Rewards {
+		rewards[i] = wasmvmtypes.Coin{
+			Denom:  r.Denom,
+			Amount: r.Amount.TruncateInt().String(),
+		}
+	}
+	return rewards, nil
 }
 
 func WasmQuerier(k wasmQueryKeeper) func(ctx sdk.Context, request *wasmvmtypes.WasmQuery) ([]byte, error) {

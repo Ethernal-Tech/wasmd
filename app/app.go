@@ -487,6 +487,8 @@ func NewWasmApp(
 		app.getSubspace(wasm.ModuleName),
 		app.accountKeeper,
 		app.bankKeeper,
+		nil,
+		nil,
 		app.ibcKeeper.ChannelKeeper,
 		&app.ibcKeeper.PortKeeper,
 		scopedWasmKeeper,
