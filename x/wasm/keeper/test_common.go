@@ -127,12 +127,15 @@ func MakeEncodingConfig(_ testing.TB) wasmappparams.EncodingConfig {
 }
 
 var TestingStakeParams = stakingtypes.Params{
-	UnbondingTime:     100,
-	MaxValidators:     10,
-	MaxEntries:        10,
-	HistoricalEntries: 10,
-	BondDenom:         "stake",
-	MinCommissionRate: stakingtypes.DefaultMinCommissionRate,
+	UnbondingTime:             100,
+	MaxValidators:             10,
+	MaxEntries:                10,
+	HistoricalEntries:         10,
+	BondDenom:                 "stake",
+	MinCommissionRate:         stakingtypes.DefaultMinCommissionRate,
+	ValidatorBondFactor:       stakingtypes.DefaultValidatorBondFactor,
+	ValidatorLiquidStakingCap: stakingtypes.DefaultValidatorLiquidStakingCap,
+	GlobalLiquidStakingCap:    stakingtypes.DefaultGlobalLiquidStakingCap,
 }
 
 type TestFaucet struct {
